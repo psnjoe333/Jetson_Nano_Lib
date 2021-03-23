@@ -19,11 +19,11 @@ for x in np.arange(0 , 2*math.pi , 0.1):
     size_y = toprange / (2*amplitude)
 
     y = amplitude * math.sin(x)
-    new_x = offset + x*size_x
-    new_y = offset + y*size_y
+    #new_x = offset + x*size_x
+    #new_y = offset + y*size_y
 
-    #new_x = offset
-    #new_y = offset
+    new_x = offset
+    new_y = offset
 
     print(new_y)
     data_x.append(new_x)
@@ -34,11 +34,11 @@ for x in np.arange(2 * math.pi , 0, -0.1):
     size_y = -toprange / (2 * amplitude)
     y = amplitude * math.sin(x)
 
-    new_x = offset + x * size_x
-    new_y = offset + y * size_y
+    #new_x = offset + x * size_x
+    #new_y = offset + y * size_y
 
-    #new_x = offset
-    #new_y = offset
+    new_x = offset
+    new_y = offset
 
     print(new_y)
     data_x.append(new_x)
