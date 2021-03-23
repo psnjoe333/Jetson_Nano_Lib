@@ -5,6 +5,7 @@ import sys
 
 class SPItoWS():
     def __init__(self, ledc):
+
         self.led_count = ledc
         self.X = '' # X is signal of WS281x
         for i in range(self.led_count):
