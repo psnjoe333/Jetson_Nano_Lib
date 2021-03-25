@@ -7,11 +7,24 @@ class SPItoWS():
     def __init__(self, ledc):
 
         self.led_count = ledc
+
+        self.X = ''  # X is signal of WS281x
+        for i in range(self.led_count):
+            self.X = self.X + "100100100100100100100100100100100100100100100100100100100100100100100100"
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)  # SPI2---->MOSI:37pin (/dev/SPI1.1)
+        self.spi.max_speed_hz = 2400000
+
+    def __init__(self, ledc , busIn=0, deviceIn=0):
+
+        self.led_count = ledc
+        self.bus = busIn
+        self.device = deviceIn
         self.X = '' # X is signal of WS281x
         for i in range(self.led_count):
             self.X = self.X + "100100100100100100100100100100100100100100100100100100100100100100100100"
         self.spi = spidev.SpiDev()
-        self.spi.open(0, 0)
+        self.spi.open(self.bus, self.device)     #SPI2---->MOSI:37pin (/dev/SPI1.1)
         self.spi.max_speed_hz = 2400000
 
     def __del__(self):
@@ -59,8 +72,8 @@ if __name__ == "__main__":
     sig = SPItoWS(LED_COUNT)
     while(True):
         for LED_NUM in range(LED_COUNT):
-            sig.RGBto3Bytes(LED_NUM, 255, 255, 255)
+            sig.RGBto3Bytes(LED_NUM, 25, 25, 25)
             sig.LED_show()
             time.sleep(1)
-            #sig.LED_OFF_ALL()
-            #time.sleep(.1)
+        sig.LED_OFF_ALL()
+        time.sleep(.1)
