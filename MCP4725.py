@@ -11,7 +11,7 @@ amplitude = 10
 toprange = 100
 data_x = list()
 data_y = list()
-offset = 1560
+offset = 1610
 
 for x in np.arange(0 , 2*math.pi , 0.1):
 
