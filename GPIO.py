@@ -1,7 +1,7 @@
 import Jetson.GPIO as GPIO
 import time
 
-output_pin = 19  #BOARD PIN = 12  BCM = 14
+output_pin = 11  #BOARD PIN = 12  BCM = 14
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(output_pin,GPIO.OUT, initial = GPIO.LOW)

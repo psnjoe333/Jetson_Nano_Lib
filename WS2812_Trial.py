@@ -12,10 +12,10 @@ class SPItoWS():
         for i in range(self.led_count):
             self.X = self.X + "100100100100100100100100100100100100100100100100100100100100100100100100"
         self.spi = spidev.SpiDev()
-        self.spi.open(0, 0)  # SPI2---->MOSI:37pin (/dev/SPI1.1)
+        self.spi.open(1, 1)  # SPI2---->MOSI:37pin (/dev/SPI1.1)
         self.spi.max_speed_hz = 2400000
 
-    def __init__(self, ledc , busIn=0, deviceIn=0):
+    def __init__(self, ledc , busIn=1, deviceIn=1):
 
         self.led_count = ledc
         self.bus = busIn
