@@ -1,40 +1,67 @@
 #!/usr/bin/python3
+# type  "sudo chmod 777 /dev/ttyTHS1" to change the permisssion of ttyTHS1
+
 import time
 import serial
 
-print("UART Demonstration Program")
-print("NVIDIA Jetson Nano Developer Kit")
+class JoeSerial:
+    def __init__(self):
 
+        self.serial_port = serial.Serial(
+            port="/dev/ttyTHS1",
+            baudrate=9600,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+        )
+        # Wait a second to let the port initialize
+        time.sleep(1)
 
-serial_port = serial.Serial(
-    port="/dev/ttyTHS1",
-    baudrate=9600,
-    bytesize=serial.EIGHTBITS,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-)
-# Wait a second to let the port initialize
-time.sleep(1)
-Num = 0
+    def __del__(self):
+        self.Close()
 
-try:
-    # Send a simple header
-    serial_port.write("UART Demonstration Program\r\n".encode())
-    serial_port.write("NVIDIA Jetson Nano Developer Kit\r\n".encode())
-    while True:
-        if serial_port.inWaiting() > 0:
-            data = serial_port.read().decode("utf-8")
-            print(data,end='')
+    def Close(self):
+        self.serial_port.close()
 
+    def ReadWeight(self):
 
+            data_dec = float()
+            data = self.serial_port.read(7)
+            data_dec = float(data)
+            #print("{:.2f}".format(data_dec))
+            return data_dec
+    def IsBusInWaiting(self):
 
-except KeyboardInterrupt:
-    print("Exiting Program")
+        if MySerial.serial_port.inWaiting() > 0:
+            return True
+        else:
+            return False
+    def IsValidData(self):
 
-except Exception as exception_error:
-    print("Error occurred. Exiting Program")
-    print("Error: " + str(exception_error))
+        if self.serial_port.read() == b'=':
+            return True
+        else:
+            return False
 
-finally:
-    serial_port.close()
-    pass
+if __name__ == "__main__":
+    try:
+        MySerial = JoeSerial()
+       # read data via UART
+        while True:
+            if MySerial.IsBusInWaiting():
+                if MySerial.IsValidData():
+                    Weight = MySerial.ReadWeight()
+                    print("{:.2f}".format(Weight))
+                else:
+                    continue
+
+    except KeyboardInterrupt:
+        print("Exiting Program")
+
+    except Exception as exception_error:
+        print("Error occurred. Exiting Program")
+        print("Error: " + str(exception_error))
+
+    finally:
+        MySerial.Close()
+        pass
