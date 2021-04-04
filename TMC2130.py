@@ -85,7 +85,6 @@ class TMC2130():
 
         # Write command
         Cmd = self.ReadFlag | Reg
-
         Data = 0
         ReadCmd = [Cmd,0x00,0x00,0x00,0x00] #sen Read command and register to read to TMC2130
         Data_read = self.spi.xfer3(ReadCmd)
@@ -99,21 +98,26 @@ class TMC2130():
         print("Enable!")
 
     def Disable(self):
+
         GPIO.output(self.En_Pin, GPIO.HIGH)
         print("Disable!")
 
     def OneStep(self):
+
         GPIO.output(self.Step_Pin, GPIO.HIGH)
         time.sleep(10 / 1000000)
         GPIO.output(self.Step_Pin, GPIO.LOW)
 
     def set_bit (self, value, bit):
+
         return value | (1<<bit)
 
     def clear_bit(self, value, bit):
+
         return value & ~(1<<bit)
 
     def Shaft (self):
+
         #GPIO.output(self.Dir_Pin, not GPIO.input(Dir_Pin))
         Data_Reg_GCONF = self.Read(self.Reg_GCONF)
         #print(hex(Data_Reg_GCONF))
@@ -127,10 +131,10 @@ class TMC2130():
         print("Shaft!")
 
     def Is_Reset(self):
-
         return bool(self.Read(self.Reg_GSTAT) & (1<<0))
 
     def Reset(self):
+
         self.Write(self.Reg_GSTAT, 0x00000001)
         print("Reset!!")
         time.sleep(0.1)
@@ -147,16 +151,19 @@ class TMC2130():
         print("Enable_Stop_Enable!")
 
     def Disable_Stop_Enable(self): # Cancel Emergency Stop
+
         Data_Reg_GCONF = self.Read(self.Reg_GCONF)
         New_Data_Reg_GCONF = self.clear_bit(Data_Reg_GCONF, 15)
         self.Write(self.Reg_GCONF, New_Data_Reg_GCONF)
         print("Disable_Stop_Enable!")
 
     def Emergency_Stop(self):
+
         self.Disable()
         self.Enable_Stop_Enable()
 
     def Cancel_Emergency_Stop(self):
+
         self.Disable_Stop_Enable()
 
 
