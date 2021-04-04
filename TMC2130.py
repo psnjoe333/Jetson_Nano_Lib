@@ -51,13 +51,17 @@ class TMC2130():
 
     def __del__(self):
         self.Disable()
+
         GPIO.cleanup()
         self.spi.close()
 
 
-    def Write(self,Cmd,DatatoSend):
-        Data = np.uint32(DatatoSend)
+    def Write(self,Reg,DatatoSend):
 
+        # Write command
+        Cmd = self.WriteFlag | Reg
+
+        Data = np.uint32(DatatoSend)
         Data_byte1 = int((Data >> 24) & 0xFF)
         Data_byte2 = int((Data >> 16) & 0xFF)
         Data_byte3 = int((Data >> 8) & 0xFF)
@@ -69,9 +73,19 @@ class TMC2130():
         #Transmit the data via spi bus
         self.spi.xfer3(data1)
 
+        # Check data is correctly sent
+        if Reg == self.Reg_GCONF:
+            time.sleep(0.1)
+        Data_Check = self.Read(Reg)
+        Data_Check = Data_Check & 0xFFFFFFFF
+        #print ("Write Reg: " + "0x{:02X}".format(Reg) + " Data_Check: " + "0x{:08X}".format(Data_Check))
 
-    def Read(self,Cmd):
-        #Read 4 bytes data via spi
+
+    def Read(self,Reg):
+
+        # Write command
+        Cmd = self.ReadFlag | Reg
+
         Data = 0
         ReadCmd = [Cmd,0x00,0x00,0x00,0x00] #sen Read command and register to read to TMC2130
         Data_read = self.spi.xfer3(ReadCmd)
@@ -80,6 +94,7 @@ class TMC2130():
         return Data
 
     def Enable(self):
+
         GPIO.output(self.En_Pin, GPIO.LOW)
         print("Enable!")
 
@@ -89,20 +104,63 @@ class TMC2130():
 
     def OneStep(self):
         GPIO.output(self.Step_Pin, GPIO.HIGH)
-        time.sleep(10 /1000000)
+        time.sleep(10 / 1000000)
         GPIO.output(self.Step_Pin, GPIO.LOW)
 
+    def set_bit (self, value, bit):
+        return value | (1<<bit)
+
+    def clear_bit(self, value, bit):
+        return value & ~(1<<bit)
+
     def Shaft (self):
-        GPIO.output(self.Dir_Pin, not GPIO.input(Dir_Pin))
-        #Shaft_Status = (0x01) & (self.Read(MyTMC2130.Reg_GCONF)>>4)
+        #GPIO.output(self.Dir_Pin, not GPIO.input(Dir_Pin))
+        Data_Reg_GCONF = self.Read(self.Reg_GCONF)
+        #print(hex(Data_Reg_GCONF))
+        Shaft_Status = bool((0x01) & (Data_Reg_GCONF)>>4 )
         #print(Shaft_Status)
-        #MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_GCONF, ((~bool(Shaft_Status))<<4 | 0x00000001))
+        if(Shaft_Status):
+            New_Data_Reg_GCONF = self.clear_bit(Data_Reg_GCONF, 4)
+        else:
+            New_Data_Reg_GCONF = self.set_bit(Data_Reg_GCONF, 4)
+        self.Write( self.Reg_GCONF, New_Data_Reg_GCONF)
+        print("Shaft!")
+
+    def Is_Reset(self):
+
+        return bool(self.Read(self.Reg_GSTAT) & (1<<0))
+
+    def Reset(self):
+        self.Write(self.Reg_GSTAT, 0x00000001)
+        print("Reset!!")
+        time.sleep(0.1)
+
+    def Is_Enable_Stop_Enable(self):
+
+        return bool(self.Read(self.Reg_GSTAT) & (1 << 15))
+
+    def Enable_Stop_Enable(self): # Emergency Stop
+
+        Data_Reg_GCONF = self.Read(self.Reg_GCONF)
+        New_Data_Reg_GCONF = self.set_bit(Data_Reg_GCONF,15)
+        self.Write(self.Reg_GCONF, New_Data_Reg_GCONF)
+        print("Enable_Stop_Enable!")
+
+    def Disable_Stop_Enable(self): # Cancel Emergency Stop
+        Data_Reg_GCONF = self.Read(self.Reg_GCONF)
+        New_Data_Reg_GCONF = self.clear_bit(Data_Reg_GCONF, 15)
+        self.Write(self.Reg_GCONF, New_Data_Reg_GCONF)
+        print("Disable_Stop_Enable!")
+
+    def Emergency_Stop(self):
+        self.Disable()
+        self.Enable_Stop_Enable()
+
+    def Cancel_Emergency_Stop(self):
+        self.Disable_Stop_Enable()
+
 
 if __name__ == "__main__":
-    def ChangeDir():
-        MyTMC2130.Shaft()
-        print ("Hello\n")
-
     import time
     from threading import Timer
     En_Pin = 31
@@ -111,28 +169,39 @@ if __name__ == "__main__":
     try:
         # Create the TMC2130 object
         MyTMC2130 = TMC2130(En_Pin,Dir_Pin,Step_Pin)
+        time.sleep(0.1)
+
+        # Reset the device if not reset
+        if( MyTMC2130.Is_Reset()):
+            MyTMC2130.Reset()
 
         # Set up the config of TMC2130
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_GCONF       , 0x00000005)   # EN_PWM_MODE=1, Voltage on AIN is current reference
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_IHOLD_IRUN  , 0x00001010)   # IHOLD=0x10, IRUN=0x10
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_CHOPCONF    , 0x080100C3)   # CHOPCONF: MicroStep: full, TOFF=3, HSTRT=4,HEND=2,TBL=0(speadCycle)
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_TPOWERDOWN  , 0x0000000A)   # TPOWERDOWN=10 #Delay before power down in stand still
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
-        MyTMC2130.Write(MyTMC2130.WriteFlag | MyTMC2130.Reg_PWMCONF     , 0x000401C8)   # PWM_CONF: AUTO=1, 2/1024 Fclk, Switch amplitude limit = 200, Grad=1
+        MyTMC2130.Write(MyTMC2130.Reg_IHOLD_IRUN  , 0x00061F0A)   # IHOLD_IRUN: IHOLD=0x10, IRUN=0x31(max. current), IHOLDDELAY=6
+        MyTMC2130.Write(MyTMC2130.Reg_CHOPCONF    , 0x080100C3)   # CHOPCONF: MicroStep: full, TOFF=3, HSTRT=4,HEND=2,TBL=0(speadCycle)
+        MyTMC2130.Write(MyTMC2130.Reg_TPOWERDOWN  , 0x0000000A)   # TPOWERDOWN=10 #Delay before power down in stand still
+        MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
+        MyTMC2130.Write(MyTMC2130.Reg_PWMCONF     , 0x000401C8)   # PWM_CONF: AUTO=1, 2/1024 Fclk, Switch amplitude limit = 200, Grad=1
+        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000005)   # EN_PWM_MODE=1, Voltage on AIN is current reference
 
+        # Enable the Motor
         time.sleep(0.1)
         MyTMC2130.Enable()
+
+        #Define Timers and the Events
         time.sleep(0.1)
-        t1 = Timer(5,ChangeDir)
+        t1 = Timer(5,MyTMC2130.Shaft)
         t1.start()
-        t2 = Timer(15,ChangeDir)
+        t2 = Timer(15,MyTMC2130.Shaft)
         t2.start()
+        t3 = Timer(20,MyTMC2130.Emergency_Stop)
+        t3.start()
 
         while True:
-            #data = MyTMC2130.Read(MyTMC2130.Reg_CHOPCONF)
+            #data = MyTMC2130.Read(MyTMC2130.Reg_GCONF)
             #print (hex(data))
             MyTMC2130.OneStep()
             time.sleep(0.001)
+
 
     except KeyboardInterrupt:
         print("Exiting Program")
