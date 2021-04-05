@@ -28,10 +28,15 @@ class TMC2130():
         self.Reg_TPOWERDOWN =        0x11
         self.Reg_TSTEP      =        0x12
         self.Reg_TRWMTHRS   =        0x13
+        self.Reg_TCOOLTHRS  =        0x14
+        self.Reg_THIGH      =        0x15
+        self.Reg_XDIRECT    =        0x2D
+        self.Reg_VDCMIN     =        0x33
         self.Reg_CHOPCONF   =        0x6C
-        self.Reg_DCCTRL     =        0x6D
+        self.Reg_COOLCONF   =        0x6D
         self.Reg_DRVSTAT    =        0x6F
         self.Reg_PWMCONF    =        0x70
+        self.Reg_ENCM_CTRL  =        0x72
 
         #Implement and set up he spi device object
         self.spi = spidev.SpiDev()
@@ -50,8 +55,8 @@ class TMC2130():
 
 
     def __del__(self):
-        self.Disable()
 
+        self.Disable()
         GPIO.cleanup()
         self.spi.close()
 
@@ -105,7 +110,7 @@ class TMC2130():
     def OneStep(self):
 
         GPIO.output(self.Step_Pin, GPIO.HIGH)
-        time.sleep(10 / 1000000)
+        time.sleep(1 / 10000000)
         GPIO.output(self.Step_Pin, GPIO.LOW)
 
     def set_bit (self, value, bit):
@@ -183,12 +188,20 @@ if __name__ == "__main__":
             MyTMC2130.Reset()
 
         # Set up the config of TMC2130
-        MyTMC2130.Write(MyTMC2130.Reg_IHOLD_IRUN  , 0x00061F0A)   # IHOLD_IRUN: IHOLD=0x10, IRUN=0x31(max. current), IHOLDDELAY=6
-        MyTMC2130.Write(MyTMC2130.Reg_CHOPCONF    , 0x080100C3)   # CHOPCONF: MicroStep: full, TOFF=3, HSTRT=4,HEND=2,TBL=0(speadCycle)
-        MyTMC2130.Write(MyTMC2130.Reg_TPOWERDOWN  , 0x0000000A)   # TPOWERDOWN=10 #Delay before power down in stand still
-        MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
-        MyTMC2130.Write(MyTMC2130.Reg_PWMCONF     , 0x000401C8)   # PWM_CONF: AUTO=1, 2/1024 Fclk, Switch amplitude limit = 200, Grad=1
-        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000005)   # EN_PWM_MODE=1, Voltage on AIN is current reference
+        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000004)   # EN_PWM_MODE=1
+        MyTMC2130.Write(MyTMC2130.Reg_IHOLD_IRUN  , 0x00001209)   # IHOLD_IRUN: IHOLD=9, IRUN=31(max), IHOLDDELAY=0
+        MyTMC2130.Write(MyTMC2130.Reg_TPOWERDOWN  , 0x0000000A)   # TPOWERDOWN=00 #Delay before power down in stand still
+        MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_TCOOLTHRS   , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_THIGH       , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_XDIRECT     , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_VDCMIN      , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_CHOPCONF    , 0x08028008)   # CHOPCONF: MicroStep: full, TOFF=?, HSTRT=?,HEND=?,TBL=36(speadCycle)
+        MyTMC2130.Write(MyTMC2130.Reg_COOLCONF    , 0x00000000)
+        #MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
+        MyTMC2130.Write(MyTMC2130.Reg_PWMCONF     , 0x00050480)   # PWM_CONF: AUTO=?, ? Fclk, Switch amplitude limit = ?, Grad=?
+        MyTMC2130.Write(MyTMC2130.Reg_ENCM_CTRL   , 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000004)   # EN_PWM_MODE=1, Voltage on AIN is current reference
 
         # Enable the Motor
         time.sleep(0.1)
