@@ -19,12 +19,6 @@ class JoeSerial:
         # Wait a second to let the port initialize
         time.sleep(1)
 
-    def __del__(self):
-        self.Close()
-
-    def Close(self):
-        self.serial_port.close()
-
 
 if __name__ == "__main__":
     try:
@@ -32,7 +26,11 @@ if __name__ == "__main__":
        # read data via UART
         while True:
             if MySerial.serial_port.inWaiting() > 0:
-                    print(MySerial.serial_port.read())
+                    data =MySerial.serial_port.read()
+                    print(data)
+                    MySerial.serial_port.write("recieve:".encode('utf-8'))
+                    MySerial.serial_port.write(data)
+                    MySerial.serial_port.write("\r\n".encode('utf-8'))
 
     except KeyboardInterrupt:
         print("Exiting Program")
