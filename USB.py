@@ -2,6 +2,24 @@
 # type  "sudo chmod 777 /dev/ttyTHS1" to change the permisssion of ttyTHS1 temporary
 # type "sudo usermod -aGdialout [Username]" to get permanent permission
 
+# ===== How to reset USB port on Jetson =======#
+#Check USB device:
+#   sudo dmesg -c
+#Run the following command to enable read/write options for the usb bind and unbind files:
+#   sudo chmod 666 /sys/bus/usb/drivers/usb/bind
+#   sudo chmod 666 /sys/bus/usb/drivers/usb/unbind
+#Verify correct permissions are enabled by running the following command:
+#   ls -lha /sys/bus/usb/drivers/usb/bind
+#   ls -lha /sys/bus/usb/drivers/usb/unbind
+#You will get an output similar to the following:
+#   -rw-rw-rw- 1 root root 4,0K mar 26 16:25 /sys/bus/usb/drivers/usb/bind
+#   -rw-rw-rw- 1 root root 4,0K mar 26 16:25 /sys/bus/usb/drivers/usb/unbind
+#Once the device is in the condition where it needs to be reset, using the device ID we found on Identifying the USB device run the following commands:
+#(in my case is USB 1-2.3)
+#   echo "1-2.3" | sudo tee /sys/bus/usb/drivers/usb/unbind
+#   echo "1-2.3" | sudo tee /sys/bus/usb/drivers/usb/bind
+
+
 import time
 import serial
 
