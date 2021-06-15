@@ -13,6 +13,7 @@ data_x = list()
 data_y = list()
 offset = 1610
 
+
 for x in np.arange(0 , 2*math.pi , 0.1):
 
     size_x = toprange / (2*math.pi)

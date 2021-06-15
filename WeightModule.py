@@ -28,7 +28,7 @@ class JoeSerial:
     def ReadWeight(self):
 
             data_dec = float()
-            data = self.serial_port.read(7)
+            data = self.serial_port.read(5)
             data_dec = float(data)
             #print("{:.2f}".format(data_dec))
             return data_dec

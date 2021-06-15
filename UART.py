@@ -29,11 +29,23 @@ class JoeSerial:
 if __name__ == "__main__":
     try:
         MySerial = JoeSerial()
+        i=-00.150
+
        # read data via UART
         while True:
+            print_data = round(i, 2)
+            #MySerial.serial_port.write("B".encode("ASCII"))
+            MySerial.serial_port.write((str(print_data)+"\n\r").encode('utf-8'))
+            time.sleep(0.5)
+            #MySerial.serial_port.write("\n".encode('utf-8'))
+            #time.sleep(2)
             if MySerial.serial_port.inWaiting() > 0:
-                    print(MySerial.serial_port.read())
+                    ReadString=(MySerial.serial_port.read())
+                    print(ReadString)
+                    #MySerial.serial_port.writelines(ReadString)
+                    #MySerial.serial_port.write("\r\n".encode('utf-8'))
 
+            i = i+0.01
     except KeyboardInterrupt:
         print("Exiting Program")
 
