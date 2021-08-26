@@ -83,7 +83,7 @@ class TMC2130():
             time.sleep(0.1)
         Data_Check = self.Read(Reg)
         Data_Check = Data_Check & 0xFFFFFFFF
-        #print ("Write Reg: " + "0x{:02X}".format(Reg) + " Data_Check: " + "0x{:08X}".format(Data_Check))
+        print ("Write Reg: " + "0x{:02X}".format(Reg) + " Data_Check: " + "0x{:08X}".format(Data_Check))
 
 
     def Read(self,Reg):
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     Step_Pin = 33
     try:
         # Create the TMC2130 object
-        MyTMC2130 = TMC2130(En_Pin,Dir_Pin,Step_Pin)
+        MyTMC2130 = TMC2130(En_Pin,Dir_Pin,Step_Pin,0,0)
         time.sleep(0.1)
 
         # Reset the device if not reset
@@ -220,7 +220,7 @@ if __name__ == "__main__":
             #data = MyTMC2130.Read(MyTMC2130.Reg_GCONF)
             #print (hex(data))
             MyTMC2130.OneStep()
-            time.sleep(0.001)
+            time.sleep(0.01)
 
 
     except KeyboardInterrupt:

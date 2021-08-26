@@ -7,11 +7,13 @@ import smbus
 
 DAC_X = Adafruit_MCP4725.MCP4725(address=0x60, busnum=0)
 DAC_Y = Adafruit_MCP4725.MCP4725(address=0x62, busnum=0)
+# SDA ----> 27
+# SCL ----> 28
 amplitude = 10
 toprange = 100
 data_x = list()
 data_y = list()
-offset = 1610
+offset = 4095
 
 
 for x in np.arange(0 , 2*math.pi , 0.1):

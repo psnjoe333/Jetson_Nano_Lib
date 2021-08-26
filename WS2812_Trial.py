@@ -72,7 +72,7 @@ if __name__ == "__main__":
     sig = SPItoWS(LED_COUNT)
     while(True):
         for LED_NUM in range(LED_COUNT):
-            sig.RGBto3Bytes(LED_NUM, 250, 250, 250)
+            sig.RGBto3Bytes(LED_NUM, 255, 255, 255)
             sig.LED_show()
             time.sleep(.1)
         #sig.LED_OFF_ALL()

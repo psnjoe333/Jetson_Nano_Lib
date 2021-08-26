@@ -15,7 +15,7 @@ data_y = list()
 offset_x = 1860
 offset_y = 1260
 
-for t in np.arange(0 , 2*math.pi , 0.08):
+for t in np.arange(0 , 2*math.pi , 0.1):
 
     size_x = toprange / (2*amplitude)
     size_y = toprange / (2*amplitude)
