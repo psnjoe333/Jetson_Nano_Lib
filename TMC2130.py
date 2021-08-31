@@ -21,7 +21,7 @@ class TMC2130():
         #Define the register address
         self.WriteFlag      =        (1<<7)
         self.ReadFlag       =        (0<<7)
-        self.Reg_GCONF      =        0x00
+        self.Reg_GCONF      =        0x00   #General configuration
         self.Reg_GSTAT      =        0x01
         self.Reg_IOIN       =        0x04
         self.Reg_IHOLD_IRUN =        0x10
@@ -60,6 +60,15 @@ class TMC2130():
         GPIO.cleanup()
         self.spi.close()
 
+    def Signed_Num_2_4BytesList(self, NumIn):
+
+        data = np.uint32(NumIn)
+        data_byte1 = int((data >> 24) & 0xFF)
+        data_byte2 = int((data >> 16) & 0xFF)
+        data_byte3 = int((data >> 8) & 0xFF)
+        data_byte4 = int((data >> 0) & 0xFF)
+        list_out = [data_byte1, data_byte2, data_byte3, data_byte4]
+        return list_out
 
     def Write(self,Reg,DatatoSend):
 
@@ -76,6 +85,7 @@ class TMC2130():
         data1 = [Cmd,Data_byte1,Data_byte2,Data_byte3,Data_byte4]
 
         #Transmit the data via spi bus
+        self.spi.xfer3([Cmd])
         self.spi.xfer3(data1)
 
         # Check data is correctly sent
@@ -112,6 +122,8 @@ class TMC2130():
         GPIO.output(self.Step_Pin, GPIO.HIGH)
         time.sleep(1 / 10000000)
         GPIO.output(self.Step_Pin, GPIO.LOW)
+        #time.sleep(1 / 10000000)
+
 
     def set_bit (self, value, bit):
 
@@ -171,6 +183,30 @@ class TMC2130():
 
         self.Disable_Stop_Enable()
 
+    def set_StallGuide_Threshold(self, Num):
+        #The Num is between -64~63
+        print("Set SG Threshold : " + str(Num))
+        ByteNum = np.uint8(Num)
+        ByteNum = (ByteNum & 0x7F)
+        print("Transform to Byte Num : " + "0x{:02X}".format(ByteNum))
+        CurRegData = self.Read(self.Reg_COOLCONF) & 0xFFFFFFFF
+        print("CurRegData : " + "0x{:08X}".format(CurRegData) )
+        data = (ByteNum << 16) & 0xFFFFFFFF
+        data |=  CurRegData
+        print (" Change to : " + "0x{:08X}".format(data))
+        self.Write(self.Reg_COOLCONF, data)
+
+    def set_RMS_Current(self, current):
+        print("Set SG Threshold : " + str(current))
+        ByteNum = np.uint8(current)
+        ByteNum = (ByteNum & 0x7F)
+        print("Transform to Byte Num : " + "0x{:02X}".format(ByteNum))
+        CurRegData = self.Read(self.Reg_COOLCONF) & 0xFFFFFFFF
+        print("CurRegData : " + "0x{:08X}".format(CurRegData))
+        data = (ByteNum << 16) & 0xFFFFFFFF
+        data |= CurRegData
+        print(" Change to : " + "0x{:08X}".format(data))
+        self.Write(self.Reg_COOLCONF, data)
 
 if __name__ == "__main__":
     import time
@@ -180,28 +216,28 @@ if __name__ == "__main__":
     Step_Pin = 33
     try:
         # Create the TMC2130 object
-        MyTMC2130 = TMC2130(En_Pin,Dir_Pin,Step_Pin,0,0)
+        MyTMC2130 = TMC2130(En_Pin,Dir_Pin,Step_Pin,0,1)
         time.sleep(0.1)
 
         # Reset the device if not reset
         if( MyTMC2130.Is_Reset()):
             MyTMC2130.Reset()
-
-        # Set up the config of TMC2130
-        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000004)   # EN_PWM_MODE=1
-        MyTMC2130.Write(MyTMC2130.Reg_IHOLD_IRUN  , 0x00001209)   # IHOLD_IRUN: IHOLD=9, IRUN=31(max), IHOLDDELAY=0
-        MyTMC2130.Write(MyTMC2130.Reg_TPOWERDOWN  , 0x0000000A)   # TPOWERDOWN=00 #Delay before power down in stand still
-        MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_TCOOLTHRS   , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_THIGH       , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_XDIRECT     , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_VDCMIN      , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_CHOPCONF    , 0x08028008)   # CHOPCONF: MicroStep: full, TOFF=?, HSTRT=?,HEND=?,TBL=36(speadCycle)
-        MyTMC2130.Write(MyTMC2130.Reg_COOLCONF    , 0x00000000)
-        #MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
-        MyTMC2130.Write(MyTMC2130.Reg_PWMCONF     , 0x00050480)   # PWM_CONF: AUTO=?, ? Fclk, Switch amplitude limit = ?, Grad=?
-        MyTMC2130.Write(MyTMC2130.Reg_ENCM_CTRL   , 0x00000000)
-        MyTMC2130.Write(MyTMC2130.Reg_GCONF       , 0x00000004)   # EN_PWM_MODE=1, Voltage on AIN is current reference
+        time.sleep(0.1)
+        #Set up the config of TMC2130
+        MyTMC2130.Write(MyTMC2130.Reg_GCONF, 0x00000004)  # EN_PWM_MODE=1
+        MyTMC2130.Write(MyTMC2130.Reg_IHOLD_IRUN, 0x00001209)  # IHOLD_IRUN: IHOLD=9, IRUN=31(max), IHOLDDELAY=0
+        MyTMC2130.Write(MyTMC2130.Reg_TPOWERDOWN, 0x0000000A)  # TPOWERDOWN=00 #Delay before power down in stand still
+        MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_TCOOLTHRS, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_THIGH, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_XDIRECT, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_VDCMIN, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_CHOPCONF, 0x08028008)  # CHOPCONF: MicroStep: full, TOFF=?, HSTRT=?,HEND=?,TBL=36(speadCycle)
+        MyTMC2130.Write(MyTMC2130.Reg_COOLCONF, 0x00000000)
+        # MyTMC2130.Write(MyTMC2130.Reg_TRWMTHRS    , 0x000001F4)   # TPWM_THRS=500 yields a switching velocity about 3500 = ca. 30RPM
+        MyTMC2130.Write(MyTMC2130.Reg_PWMCONF, 0x00050480)  # PWM_CONF: AUTO=?, ? Fclk, Switch amplitude limit = ?, Grad=?
+        MyTMC2130.Write(MyTMC2130.Reg_ENCM_CTRL, 0x00000000)
+        MyTMC2130.Write(MyTMC2130.Reg_GCONF, 0x00000004)  # EN_PWM_MODE=1, Voltage on AIN is current reference
 
         # Enable the Motor
         time.sleep(0.1)
@@ -216,12 +252,16 @@ if __name__ == "__main__":
         t3 = Timer(20,MyTMC2130.Emergency_Stop)
         t3.start()
 
+
         while True:
+
             #data = MyTMC2130.Read(MyTMC2130.Reg_GCONF)
             #print (hex(data))
             MyTMC2130.OneStep()
             time.sleep(0.01)
-
+            # DRVSTAT = MyTMC2130.Read(MyTMC2130.Reg_DRVSTAT)
+            # print("Read Reg: " + "0x{:02X}".format(MyTMC2130.Reg_DRVSTAT) + " DRVSTAT: " + "0x{:08X}".format(DRVSTAT))
+            #MyTMC2130.set_StallGuide_Threshold(10)
 
     except KeyboardInterrupt:
         print("Exiting Program")

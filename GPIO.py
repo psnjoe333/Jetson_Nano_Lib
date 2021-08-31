@@ -11,3 +11,4 @@ while(1):
     time.sleep(1)
     GPIO.output(output_pin, GPIO.LOW)
     time.sleep(1)
+

@@ -6,7 +6,7 @@ import smbus
 
 
 DAC_X = Adafruit_MCP4725.MCP4725(address=0x60, busnum=0)
-DAC_Y = Adafruit_MCP4725.MCP4725(address=0x62, busnum=0)
+DAC_Y = Adafruit_MCP4725.MCP4725(address=0x61, busnum=0)
 # SDA ----> 27
 # SCL ----> 28
 amplitude = 10
