@@ -68,7 +68,7 @@ class SPItoWS():
         self.LED_show()
 if __name__ == "__main__":
     import time
-    LED_COUNT = 16
+    LED_COUNT = 24
     sig = SPItoWS(LED_COUNT)
     while(True):
         for LED_NUM in range(LED_COUNT):

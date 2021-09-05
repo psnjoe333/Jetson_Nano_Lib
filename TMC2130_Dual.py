@@ -1,18 +1,46 @@
 from TMC2130 import TMC2130
 import time
 from threading import Timer
+import Jetson.GPIO as GPIO
 
+# Pin Definitions:
 D1_En_Pin = 31
 D1_Dir_Pin = 32
 D1_Step_Pin = 33
 D2_En_Pin = 22
 D2_Dir_Pin = 16
 D2_Step_Pin = 18
+EMG_pin = 40
+
+MyTMC2130_1 = TMC2130(D1_En_Pin, D1_Dir_Pin, D1_Step_Pin, 0, 0)
+MyTMC2130_2 = TMC2130(D2_En_Pin, D2_Dir_Pin, D2_Step_Pin, 0, 1)
+time.sleep(0.1)
+
+EMG_STAT = False
+
+def EMG_event_Handler(channel):
+    print(channel)
+    if GPIO.input(channel) == GPIO.LOW:
+        print("Emergency stop!!")
+        MyTMC2130_1.Emergency_Stop()
+        MyTMC2130_2.Emergency_Stop()
+        EMG_STAT = True
+    elif GPIO.input(channel) == GPIO.HIGH:
+        print("Emergency stop clear!!")
+        MyTMC2130_1.Cancel_Emergency_Stop()
+        MyTMC2130_2.Cancel_Emergency_Stop()
+        EMG_STAT = False
+
+
+#setting
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(EMG_pin, GPIO.IN)
+GPIO.add_event_detect(EMG_pin, GPIO.BOTH, callback=EMG_event_Handler, bouncetime=300)
+
+
 try:
     # Create the TMC2130 object
-    MyTMC2130_1 = TMC2130(D1_En_Pin, D1_Dir_Pin, D1_Step_Pin, 0, 0)
-    MyTMC2130_2 = TMC2130(D2_En_Pin, D2_Dir_Pin, D2_Step_Pin, 0, 1)
-    time.sleep(0.1)
     #MyTMC2130_1.Enable_Stop_Enable()
     #MyTMC2130_2.Enable_Stop_Enable()
     # Reset the device if not reset
@@ -76,9 +104,12 @@ try:
         # data = MyTMC2130_1.Read(MyTMC2130_1.Reg_GCONF)
 
         # print (hex(data))
-        MyTMC2130_2.OneStep()
-        MyTMC2130_1.OneStep()
-        time.sleep(0.005)
+        if not (EMG_STAT):
+            MyTMC2130_2.OneStep()
+            MyTMC2130_1.OneStep()
+            time.sleep(0.005)
+        else:
+            print("do nothing")
         #DRVSTAT = MyTMC2130_1.Read(MyTMC2130_1.Reg_DRVSTAT)
         #print("Read Reg: " + "0x{:02X}".format(MyTMC2130_1.Reg_DRVSTAT) + " DRVSTAT: " + "0x{:08X}".format(DRVSTAT))
 
