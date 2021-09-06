@@ -20,3 +20,5 @@ cd darknet
 ##Jetson nano pin config:
 
 sudo /opt/nvidia/jetson-io/jetson-io.py
+
+## dconf-editor (To edit the caction when pushing PWR_BTN)
