@@ -25,13 +25,13 @@ class JoeI2C:
         self.REG_AVG_WEIGHT         =   0x02    # (W/R)
         self.REG_CUR_TOTAL_WEIGHT   =   0x03    # (R)
         self.REG_CUR_JN_STAT        =   0xFE    # (W)
-        self.REG_SHUTDOWN_CMD       =   0xFF    # (R) Read this Reg will trigger Atmega send Shutdown command
+        self.REG_SHUTDOWN_CMD       =   0xFD    # (R) Read this Reg will trigger Atmega send Shutdown command
 
         # Mode define
         self.MODE_NONE          =   0x00    # No mode is selected
         self.MODE_MEASURE       =   0x01    # IN measuring mode
         self.MODE_SLEEP         =   0x02
-        self.MODE_SHUTDOWN      =   0xFE
+        self.MODE_SHUTDOWN      =   0xFD
 
         # Jetson Nano Status
         self.JNSTAT_WORKWELL    =   0x00
@@ -52,7 +52,7 @@ class JoeI2C:
     def I2C_Event(self, channel):
         GPIO.remove_event_detect(self.ackPin)
         print("I2C Int!!")
-        command = bytes(self.readNumber(self.REG_SHUTDOWN_CMD,2))
+        command = bytes(self.readNumber(self.REG_SHUTDOWN_CMD, 2))
         if command[0] == 0x15:
             if command[2] == 0x65:
                 print("shutdown!!")

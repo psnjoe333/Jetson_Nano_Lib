@@ -7,7 +7,7 @@ import os
 def I2C_Event(channel):
     GPIO.remove_event_detect(29)
     print("I2C Int!!")
-    command = bytes(readNumber(MODE_SHUTDOWN,2))
+    command = bytes(readNumber(REG_SHUTDOWN_CMD,2))
     if command[0] == 0x15:
         if command[1] == 0x65:
             print("shutdown!!")
@@ -27,19 +27,19 @@ REG_JN_CORE_TEMP       =   0x01    # (W)
 REG_AVG_WEIGHT         =   0x02    # (W/R)
 REG_CUR_TOTAL_WEIGHT   =   0x03    # (R)
 REG_CUR_JN_STAT        =   0xFE    # (W)
-REG_SHUTDOWN_CMD       =   0xFF    # (R) Read this Reg will trigger Atmega send Shutdown command
+REG_SHUTDOWN_CMD       =   0xFD    # (R) Read this Reg will trigger Atmega send Shutdown command
 
 # Mode define
-MODE_NONE          =   0x00    # No mode is selected
-MODE_MEASURE       =   0x01    # IN measuring mode
-MODE_SLEEP         =   0x02
-MODE_SHUTDOWN      =   0xFE
+MODE_NONE              =   0x00    # No mode is selected
+MODE_MEASURE           =   0x01    # IN measuring mode
+MODE_SLEEP             =   0x02
+MODE_SHUTDOWN          =   0xFD
 
 # Jetson Nano Status
-JNSTAT_WORKWELL    =   0x00
-JNSTAT_RESET       =   0x01    # Jetson Nano has been reseted once
-JNSTAT_CAMERAFAIL  =   0x02
-JNSTAT_WIFIFAIL    =   0x03
+JNSTAT_WORKWELL        =   0x00
+JNSTAT_RESET           =   0x01    # Jetson Nano has been reseted once
+JNSTAT_CAMERAFAIL      =   0x02
+JNSTAT_WIFIFAIL        =   0x03
 
 # This is the address we setup in the Arduino Program
 GPIO.setwarnings(False)
