@@ -10,7 +10,7 @@ bus = smbus.SMBus(0)
 def I2C_Event(channel):
     GPIO.remove_event_detect(29)
     print("I2C Int!!")
-    command = bytes(readNumber(0xFF,3))
+    command = bytes(readNumber(0xFD,3))
     if command[0] == 0x15:
         if command[1] == 0x18:
             if command[2] == 0x65:
