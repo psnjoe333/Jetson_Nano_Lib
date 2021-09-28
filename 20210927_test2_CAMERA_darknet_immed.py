@@ -23,7 +23,6 @@ url1 = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test/ima
 url2 = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test/average_weight"
 url3 = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test/noflash_image/file"
 headers = {"Content-Type":"application/json"}
-LED_COUNT = 24
 d1=time.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -115,9 +114,9 @@ class SPItoWS():
             self.X = self.X + "100100100100100100100100100100100100100100100100100100100100100100100100"
         self.LED_show()
 
-def color(sig,R,G,B):
+def color(sig,ledc,R,G,B):
 
-    for LED_NUM in range(LED_COUNT):
+    for LED_NUM in range(ledc):
         sig.RGBto3Bytes(LED_NUM, 255, 255, 255)
         sig.LED_show()
         time.sleep(.1)
@@ -158,26 +157,13 @@ def show_camera():
     if(cap.isOpened()):
         ret_val, img_raw = cap.read()
         if (ret_val):
-            print("Camera Capture Success !!")
-            images_file='/home/ichase/original_picture'
-            images_file1='/home/ichase/temporary_picture'
-            shape = img_raw.shape
-            center_pixel = {'x': shape[1]/2,'y':shape[0]/2}
-            #print("shape : " + str(shape) )
-            w = 3264
-            h = 1836
-            img_cropped = crop_img(img_raw, int(center_pixel['x']-w/2), int(center_pixel['y']-h/2))
-            img = white_balance(img_cropped)
-            shape = img.shape
-            cv2.circle(img,(int(shape[1]/2), int(shape[0]/2)), 5, (255, 0, 0), 3)
-
-
+            print("Camera Capture Success !!")            
             # print("No.= {} parameter={}".format(3, cap.get(3)))
             # print("No.= {} parameter={}".format(4, cap.get(4)))
             # print("No.= {} parameter={}".format(15, cap.get(15)))
             cap.release()
             cv2.destroyAllWindows()
-            return img
+            return img_raw
         else :
             print("Camera Capture Fail !!")
             quit()
@@ -516,15 +502,10 @@ class JoeI2C:
         success = self.readNumber(self.REG_OFFSET, 2)
         if success[0] == 0x13:
             if success[1] == 0x65:
-                print("offset success!!")   
-    
-        
-
-
-    
-
+                print("offset success!!")     
+  
 ### get weight
-def weight():
+def weight(myI2C):
     try:
         while True:
             Weight = myI2C.readWeight()
@@ -552,39 +533,63 @@ def weight():
     
 
 def main():
-    try:   
+    try:  
+        
+    # ==================================================================================
+    # =============================== Capture the image ================================
+    # ================================================================================== 
+        
+        ## Definition of the variables
         images_file='/home/ichase/original_picture' ###original picture
         images_file1='/home/ichase/temporary_picture' ### temporary picture
         images_file2='/home/ichase/final_picture' ### final picture
-        images_file3='/home/ichase/noflash_picture'
-        #open the LED
-        sig = SPItoWS(LED_COUNT)
-        
-        sig.LED_OFF_ALL()   
-        color(sig,255,255,255)
+        images_file3='/home/ichase/noflash_picture'       
+        LED_Count = 24
+        sig = SPItoWS(LED_Count) 
+        myI2C = JoeI2C()
+
+        ## Capture an image Without Flash
+        result_NoFalsh = weight(myI2C)
+        #show_USBCamera()
+        img_noflash = show_camera()
         time.sleep(1)
-        #take a picture and upload
-        result = weight()
-        img = show_camera()
-                    
-        cv2.imwrite(images_file+'/'+d1+'.jpg',img)
-        cv2.imwrite(images_file1+'/'+d1+'.jpg',img)
+
+        ## Turn on the LED               
+        sig.LED_OFF_ALL()   
+        color(sig,LED_Count,255,255,255)
+        
+        ## Capture an image With Flash
+        result = weight(myI2C)
+        img_raw = show_camera()
+        #img_raw = cv2.imread('/home/ichase/original_picture/20210928-171854-1927.jpg')
         #show_USBCamera()
         #get the weight
+
+        ## Tuen off the LED
         sig.LED_OFF_ALL()
         time.sleep(1)
-        #set the picture path
-        result_NoFalsh = weight()
-        #show_USBCamera()
-        img2 = show_camera()
-        cv2.imwrite(images_file3+'/'+d1+'.jpg',img2)
-        #get the weight
         
-        
-        #upload the weight and time to IBP
+        ## Save the image
+        cv2.imwrite(images_file+'/'+d1+'.jpg',img_raw)
+        cv2.imwrite(images_file3+'/'+d1+'.jpg',img_noflash)
+
+        ## Upload the weight and time to IBP
         #upload_data_to_IBP('weight_test', result, url)
 
-        
+        # Post-processing for Raw picture 
+        shape = img_raw.shape
+        center_pixel = {'x': shape[1]/2,'y':shape[0]/2}
+        #print("shape : " + str(shape) )
+        w = 3264
+        h = 1836
+        img_cropped = crop_img(img_raw, int(center_pixel['x']-w/2), int(center_pixel['y']-h/2))
+        img = white_balance(img_cropped)
+
+        ## Add a circle on the center of picture
+        shape = img.shape
+        cv2.circle(img,(int(shape[1]/2), int(shape[0]/2)), 5, (255, 0, 0), 3)      
+        cv2.imwrite(images_file1+'/'+d1+'.jpg',img)
+                        
         
         args = parser()
         check_arguments_errors(args)
@@ -612,7 +617,7 @@ def main():
                 print(image_name)
             prev_time = time.time()    
             
-        ### Using cv2.putText() method
+            ### Using cv2.putText() method
             
             image, detections = image_detection( image_name, network, class_names, class_colors, args.thresh  )
             count = 0
@@ -644,14 +649,17 @@ def main():
                 ws.cell(row=k+1,column=4).value=average_str ### average per one
                 average = round(average, 2)
                 print(average)
-            myI2C.writeAvgWeight(average)
-            upload_data_to_IBP('average_weight', average, url)
-                
+
             ### close the excel and save       
             wb.close()   
             wb.save('filename'+'.xlsx') 
 
-        
+            ## Sent AVG weight to UpperBoard
+            myI2C.writeAvgWeight(average)
+
+            ## Upload the AVG Weight data to IBP
+            #upload_data_to_IBP('average_weight', average, url)               
+       
 
             if args.save_labels:
                 save_annotations(image_name, image, detections, class_names)
@@ -662,6 +670,10 @@ def main():
             cv2.imwrite(images_file1+'/'+d1+'.jpg',image)
             #cv2.imshow('Inference', image)
             #if cv2.waitKey() & 0xFF == ord('q'):
+
+            # ====================================================================================
+            # ==================== Add Commment on the Picture then Save =========================
+            # ====================================================================================         
 
             ### make a rectangle 
             ret=cv2.imread(images_file1+'/'+d1+'.jpg')
@@ -699,7 +711,7 @@ def main():
             img = cv2.putText(pho,d1,(30,30),font,3,(255,255,255),1)
             cv2.imwrite(images_file+'/'+d1+'.jpg',img)
             dataName = images_file+'/'+d1+'.jpg'
-            upload_img_to_IBP(dataName, url1)
+            #upload_img_to_IBP(dataName, url1)
             ###noflash
             
             pho = cv2.imread(images_file3+'/'+d1+'.jpg')
@@ -717,7 +729,7 @@ def main():
             cv2.imwrite(images_file3+'/'+d1+'.jpg',img)
 
             dataName1 = images_file3+'/'+d1+'.jpg'
-            upload_img_to_IBP(dataName1, url3)
+            #upload_img_to_IBP(dataName1, url3)
             
             
             index += 1
@@ -730,6 +742,5 @@ if __name__ == "__main__":
     # unconmment next line for an example of batch processing
     # batch_detection_example()
     #show_camera()
-    myI2C = JoeI2C()
     main()
     
