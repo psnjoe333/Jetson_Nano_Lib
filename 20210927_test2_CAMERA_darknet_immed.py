@@ -18,6 +18,9 @@ from datetime import datetime
 import json
 import smbus
 import Jetson.GPIO as GPIO
+import csv
+from csv import DictWriter
+
 url = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test"
 url1 = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test/image/file"
 url2 = "http://ibp.bime.ntu.edu.tw/rest/sensorDataLogs/CH01/PH01/weight_test/average_weight"
@@ -231,7 +234,7 @@ def parser():
                         "If no input is given, ")
     parser.add_argument("--batch_size", default=1, type=int,
                         help="number of images to be processed at the same time")
-    parser.add_argument("--weights", default="yolov4-cock_train_best.weights",
+    parser.add_argument("--weights", default="./darknet/yolov4-cock_train_best.weights",
                         help="yolo weights path")
     parser.add_argument("--dont_show", action='store_true',
                         help="windown inference display. For headless systems")
@@ -239,9 +242,9 @@ def parser():
                         help="display bbox coordinates of detected objects")
     parser.add_argument("--save_labels", action='store_true',
                         help="save detections bbox for each image in yolo format")
-    parser.add_argument("--config_file", default="./cfg/yolov4.cfg",
+    parser.add_argument("--config_file", default="./darknet/cfg/yolov4.cfg",
                         help="path to config file")
-    parser.add_argument("--data_file", default="./cfg/coco.data",
+    parser.add_argument("--data_file", default="./darknet/cfg/coco.data",
                         help="path to data file")
     parser.add_argument("--thresh", type=float, default=.25,
                         help="remove detections with lower confidence")
@@ -509,7 +512,7 @@ def weight(myI2C):
     try:
         while True:
             Weight = myI2C.readWeight()
-            print("Weight :" + str(Weight))
+            print("Weight : {:.2f}".format(Weight))
             #time.sleep(5)
             
              #bus.write_byte_data(address, 0x15, 0x85)
@@ -530,6 +533,31 @@ def weight(myI2C):
         # MySerial.Close()
         pass
 
+def check_dir_exist(filepath):
+    path_split = filepath.split('/')
+    Cur_Check_Path = ''
+    for path_section_num in path_split:
+        if(path_section_num) == '.':
+            Cur_Check_Path = '.'
+        else:
+            Cur_Check_Path = Cur_Check_Path +'/'+ path_section_num
+
+        if not os.path.exists(Cur_Check_Path):
+            print("Dir is not existed, create a new dir : " + os.path.abspath(Cur_Check_Path))
+            os.mkdir(Cur_Check_Path)
+    return Cur_Check_Path
+
+def append_dict_as_row(file_name, dict_of_elem, field_names):
+    # Open file in append mode
+    is_firstfile = not os.path.isfile(file_name)
+    with open(file_name, 'a+', newline='') as write_obj:        
+        # Create a writer object from csv module
+        dict_writer = DictWriter(write_obj, fieldnames=field_names)        
+        if is_firstfile:
+            print("csv file is not exist, create new one and add header.")
+            dict_writer.writeheader()
+            # Add dictionary as wor in the csv
+        dict_writer.writerow(dict_of_elem)
     
 
 def main():
@@ -540,10 +568,10 @@ def main():
     # ================================================================================== 
         
         ## Definition of the variables
-        images_file='/home/ichase/original_picture' ###original picture
-        images_file1='/home/ichase/temporary_picture' ### temporary picture
-        images_file2='/home/ichase/final_picture' ### final picture
-        images_file3='/home/ichase/noflash_picture'       
+        filepath='./Data Record/Picture/original_picture' ###original picture
+        filepath_temp='./Data Record/Picture/temporary_picture' ### temporary picture
+        filepath_final='./Data Record/Picture/final_picture' ### final picture
+        filepath_noflash='./Data Record/Picture/noflash_picture'       
         LED_Count = 24
         sig = SPItoWS(LED_Count) 
         myI2C = JoeI2C()
@@ -560,8 +588,8 @@ def main():
         
         ## Capture an image With Flash
         result = weight(myI2C)
-        img_raw = show_camera()
-        #img_raw = cv2.imread('/home/ichase/original_picture/20210928-171854-1927.jpg')
+        #img_raw = show_camera()
+        img_raw = cv2.imread('./darknet/original_picture/20210928-193358-1927.jpg')
         #show_USBCamera()
         #get the weight
 
@@ -570,11 +598,11 @@ def main():
         time.sleep(1)
         
         ## Save the image
-        cv2.imwrite(images_file+'/'+d1+'.jpg',img_raw)
-        cv2.imwrite(images_file3+'/'+d1+'.jpg',img_noflash)
+        ret=cv2.imwrite(check_dir_exist(filepath)+'/'+d1+'.jpg',img_raw)
+        ret=cv2.imwrite(check_dir_exist(filepath_noflash)+'/'+d1+'.jpg',img_noflash)
 
         ## Upload the weight and time to IBP
-        #upload_data_to_IBP('weight_test', result, url)
+        upload_data_to_IBP('weight_test', result, url)
 
         # Post-processing for Raw picture 
         shape = img_raw.shape
@@ -588,7 +616,7 @@ def main():
         ## Add a circle on the center of picture
         shape = img.shape
         cv2.circle(img,(int(shape[1]/2), int(shape[0]/2)), 5, (255, 0, 0), 3)      
-        cv2.imwrite(images_file1+'/'+d1+'.jpg',img)
+        cv2.imwrite(check_dir_exist(filepath_temp)+'/'+d1+'.jpg',img)
                         
         
         args = parser()
@@ -613,7 +641,7 @@ def main():
                     break
                 image_name = images[index]
             else:
-                image_name = (images_file1 + '/'+d1+'.jpg')
+                image_name = (filepath_temp + '/'+d1+'.jpg')
                 print(image_name)
             prev_time = time.time()    
             
@@ -630,35 +658,31 @@ def main():
                         count+=1
             print("+++++", count)
 
-            ### find the excel to record data
-            wb = load_workbook('filename'+'.xlsx')
-            ws = wb.active
-            #ws = wb.get_sheet_by_name('Sheet')
-            k = ws.max_row
-            ws.cell(row=k+1,column=1).value=d1 ### date
-            ws.cell(row=k+1,column=2).value=result ### total weight
-            ws.cell(row=k+1,column=3).value=count ### animal count
             average = 0
             if count == 0:
-                ws.cell(row=k+1,column=4).value=0
-                
-            else:
-                
+                average = 0
+            else:                
                 average =float(result/count)
-                average_str = ('%.2f' %average)
-                ws.cell(row=k+1,column=4).value=average_str ### average per one
                 average = round(average, 2)
+                average_str = ('%.2f' %average)
                 print(average)
 
-            ### close the excel and save       
-            wb.close()   
-            wb.save('filename'+'.xlsx') 
+
+            filename_csv = './Data Record/Data.csv'
+            fieldnames = ['Date', 'Total Weight', 'Count', 'AVG Weight']
+            data = {
+            'Date' : d1,
+            'Total Weight' : result,
+            'Count' : count,
+            'AVG Weight' : average }            
+            append_dict_as_row( filename_csv, data, fieldnames)
+
 
             ## Sent AVG weight to UpperBoard
             myI2C.writeAvgWeight(average)
 
             ## Upload the AVG Weight data to IBP
-            #upload_data_to_IBP('average_weight', average, url)               
+            upload_data_to_IBP('average_weight', average, url)               
        
 
             if args.save_labels:
@@ -666,8 +690,8 @@ def main():
             darknet.print_detections(detections, args.ext_output)
             fps = int(1/(time.time() - prev_time))
             print("FPS: {}".format(fps))
-            print(d1)
-            cv2.imwrite(images_file1+'/'+d1+'.jpg',image)
+            print("CurTime: ", d1)
+            cv2.imwrite(check_dir_exist(filepath_temp)+'/'+d1+'.jpg',image)
             #cv2.imshow('Inference', image)
             #if cv2.waitKey() & 0xFF == ord('q'):
 
@@ -676,12 +700,12 @@ def main():
             # ====================================================================================         
 
             ### make a rectangle 
-            ret=cv2.imread(images_file1+'/'+d1+'.jpg')
+            ret=cv2.imread(filepath_temp+'/'+d1+'.jpg')
             cv2.rectangle(ret,(140,80),(380,250),(255,0,0),2)
-            cv2.imwrite(images_file1+'/'+d1+'.jpg',ret)
+            cv2.imwrite(filepath_temp+'/'+d1+'.jpg',ret)
 
             ### make the black rectange on the upper left corner and putText the word 
-            pho = cv2.imread(images_file1+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath_temp+'/'+d1+'.jpg')
             width = pho.shape[1]
             height = pho.shape[2]
             for y in range (0,30):
@@ -689,15 +713,15 @@ def main():
                     pho[y,x] = 0
             font = cv2.FONT_HERSHEY_PLAIN
             img1 = cv2.putText(pho,'weight='+str(result)+'count='+str(count)+ ' '+'average_weight='+str(average),(30,25),font,2,(255,255,255),1)
-            cv2.imwrite(images_file1+'/'+d1+'.jpg',img1)
+            cv2.imwrite(filepath_temp+'/'+d1+'.jpg',img1)
             
-            pho = cv2.imread(images_file1+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath_temp+'/'+d1+'.jpg')
             img = cv2.putText(pho,d1,(30,10),font,2,(255,255,255),1)
-            cv2.imwrite(images_file2+'/'+d1+'.jpg',img)
+            cv2.imwrite(check_dir_exist(filepath_final)+'/'+d1+'.jpg',img)
             
             ####
             
-            pho = cv2.imread(images_file+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath+'/'+d1+'.jpg')
             width = pho.shape[1]
             height = pho.shape[2]
             for y in range (0,100):
@@ -705,16 +729,16 @@ def main():
                     pho[y,x] = 0
             font = cv2.FONT_HERSHEY_PLAIN
             image = cv2.putText(pho,'Total weight='+str(result)+' '+'count='+str(count)+ ' '+'average_weight='+str(average),(30,75),font,3,(255,255,255),1)
-            cv2.imwrite(images_file+'/'+d1+'.jpg',pho)
+            cv2.imwrite(filepath+'/'+d1+'.jpg',pho)
             
-            pho = cv2.imread(images_file+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath+'/'+d1+'.jpg')
             img = cv2.putText(pho,d1,(30,30),font,3,(255,255,255),1)
-            cv2.imwrite(images_file+'/'+d1+'.jpg',img)
-            dataName = images_file+'/'+d1+'.jpg'
-            #upload_img_to_IBP(dataName, url1)
+            cv2.imwrite(filepath+'/'+d1+'.jpg',img)
+            dataName = filepath+'/'+d1+'.jpg'
+            upload_img_to_IBP(dataName, url1)
             ###noflash
             
-            pho = cv2.imread(images_file3+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath_noflash+'/'+d1+'.jpg')
             width = pho.shape[1]
             height = pho.shape[2]
             for y in range (0,100):
@@ -722,14 +746,14 @@ def main():
                     pho[y,x] = 0
             font = cv2.FONT_HERSHEY_PLAIN
             image = cv2.putText(pho,'Total weight='+str(result)+' '+'count='+str(count)+ ' '+'average_weight='+str(average),(30,75),font,3,(255,255,255),1)
-            cv2.imwrite(images_file3+'/'+d1+'.jpg',pho)
+            cv2.imwrite(filepath_noflash+'/'+d1+'.jpg',pho)
             
-            pho = cv2.imread(images_file3+'/'+d1+'.jpg')
+            pho = cv2.imread(filepath_noflash+'/'+d1+'.jpg')
             img = cv2.putText(pho,d1,(30,30),font,3,(255,255,255),1)
-            cv2.imwrite(images_file3+'/'+d1+'.jpg',img)
+            cv2.imwrite(filepath_noflash+'/'+d1+'.jpg',img)
 
-            dataName1 = images_file3+'/'+d1+'.jpg'
-            #upload_img_to_IBP(dataName1, url3)
+            dataName1 = filepath_noflash+'/'+d1+'.jpg'
+            upload_img_to_IBP(dataName1, url3)
             
             
             index += 1
