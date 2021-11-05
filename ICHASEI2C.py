@@ -6,6 +6,7 @@ import time
 import Jetson.GPIO as GPIO
 import numpy as np
 import os
+import requests
 
 class JoeI2C:
 
@@ -24,11 +25,10 @@ class JoeI2C:
         self.REG_JN_CORE_TEMP       =   0x01    # (W)
         self.REG_AVG_WEIGHT         =   0x02    # (W/R)
         self.REG_CUR_TOTAL_WEIGHT   =   0x03    # (R)
-        self.REG_OFFSET             =   0x04    #
+        self.REG_OFFSET             =   0x04    # (R)
         self.REG_CAP_COUNT          =   0x05
-        self.REG_CALIB_WEIGHT       =   0x06
         self.REG_CUR_JN_STAT        =   0xFE    # (W)
-        self.REG_CMD                =   0xFD    # (R) Read this Reg will trigger Atmega send Shutdown command
+        self.REG_SHUTDOWN_CMD       =   0xFD    # (R) Read this Reg will trigger Atmega send Shutdown command
 
         # Mode define
         self.MODE_NONE              =   0x00    # No mode is selected
@@ -42,12 +42,16 @@ class JoeI2C:
         self.CMD_RESET              =   0x14
         self.CMD_READSTATUS         =   0x13
         self.CMD_CAP                =   0x12
+        self.CMD_WIFIHOTSPOT         =  0x11
 
         # Jetson Nano Status
         self.JNSTAT_WORKWELL        =   0x00
         self.JNSTAT_RESET           =   0x01    # Jetson Nano has been reseted once
         self.JNSTAT_CAMERAFAIL      =   0x02
         self.JNSTAT_WIFIFAIL        =   0x03
+
+        self.CurState               =   self.JNSTAT_WORKWELL
+        self.isHotspotConnected     =   False
 
         # default address of Arduino is 0x08
         GPIO.setwarnings(False)
@@ -61,10 +65,9 @@ class JoeI2C:
 
 
     def I2C_Event(self, channel):
-        GPIO.remove_event_detect(29)
+        GPIO.remove_event_detect(self.ackPin)
         print("I2C Int!!")
-        command = bytes(self.readNumber(self.REG_CMD,2))
-        print(command)
+        command = bytes(self.readNumber(self.REG_SHUTDOWN_CMD, 2))
         if command[0] == self.CMD_SHUTDOWN:
             print("Get Shutdown Cmd")
             if command[1] == self.CMD_CONFIRM:
@@ -74,18 +77,30 @@ class JoeI2C:
         elif command[0] == self.CMD_READSTATUS :
             if command[1] == self.CMD_CONFIRM:
                 print("Check Status")
-                data = [0x00, self.JNSTAT_CAMERAFAIL]
+                data = [0x00, self.CurState ]
                 self.bus.write_i2c_block_data(self.address, self.REG_CUR_JN_STAT, data )
         elif command[0] == self.CMD_CAP:
             if command[1] == self.CMD_CONFIRM:
                 print("Capture!!")
-                data = [0x00,0x65]
-                self.bus.write_i2c_block_data(self.address, self.REG_CAP_COUNT, data )
+                global is_Cap_request
+                is_Cap_request = True
+                #data = [0x00,0x65]
+                #bus.write_i2c_block_data(address, REG_AVG_WEIGHT, data )
+        elif command[0] == self.CMD_WIFIHOTSPOT:
+            if command[1] == self.CMD_CONFIRM:
+                if not self.isHotspotConnected:
+                    print("Connect wifi hotspot")
+                    os.system("nmcli connection up iChase")
+                    self.isHotspotConnected = True
+                else:
+                    print("Disconnect wifi hotspot")
+                    os.system("nmcli connection down iChase")
+                    self.isHotspotConnected = False
+
 
         print("0x" + command.hex())
         time.sleep(0.001)
-        GPIO.add_event_detect(29, GPIO.FALLING, callback=self.I2C_Event)
-
+        GPIO.add_event_detect(self.ackPin, GPIO.FALLING, callback=self.I2C_Event)
 
     def writeNumber(self,Reg, value):
         #bus.write_byte(address, value)
@@ -106,11 +121,21 @@ class JoeI2C:
         #print("Weight :" + str(Weight))
         return Weight
 
+    def writeAvgWeight(self, AvgWeight):
+        #print("AvgWeight : " + str(AvgWeight))
+        Data_toSend = np.uint16(AvgWeight*pow(10,2))
+        #print("Data_toSend : " + str(Data_toSend))
+        byte_High = int((Data_toSend>>8) & 0xFF)
+        byte_Low = int((Data_toSend) & 0xFF)
+        data = [byte_High, byte_Low]
+        self.bus.write_i2c_block_data(self.address, self.REG_AVG_WEIGHT, data)
+        print ("Value: " + "0x{:02X} ".format(byte_High) + "0x{:02X} ".format(byte_Low))
+        
     def offset(self):
-        print("Offset !!")
-        data = [0x00,0x65]
-        res = self.bus.read_i2c_block_data(self.address, self.REG_OFFSET, 2)
-        print(res)
+        success = self.readNumber(self.REG_OFFSET, 2)
+        if success[0] == 0x13:
+            if success[1] == 0x65:
+                print("offset success!!") 
 
     def calibrate(self, value):
         Data_toSend = np.uint16(value*pow(10,2))
