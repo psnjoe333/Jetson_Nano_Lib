@@ -126,15 +126,27 @@ if __name__ == "__main__":
     try:
         myI2C = JoeI2C()
         #myI2C.offset()
-        myI2C.calibrate(3.45)
-        # while True:
-        #     Weight = myI2C.readWeight()
-        #     print("Weight :" + str(Weight))
-        #     #bus.write_byte_data(address, 0x15, 0x85)
-        #     time.sleep(0.5)
+        #myI2C.calibrate(3.45)
+        while True:
+            #Weight = myI2C.readWeight()
+            #print("Weight :" + str(Weight))
+            #bus.write_byte_data(address, 0x15, 0x85)
+            #time.sleep(0.1 )
             
             #number = readNumber(0x85,3)
             #print(number)
+            timeout = 5
+            url_test = "https://google.com"
+            try:
+                request = requests.get(url_test, timeout=timeout)
+                print("Connected to the Internet")
+                myI2C.CurState = myI2C.JNSTAT_CAMERAFAIL
+            except (requests.ConnectionError, requests.Timeout) as exception:
+                print("No internet connection.")
+                myI2C.CurState = myI2C.JNSTAT_WIFIFAIL
+                data = [0x00, myI2C.CurState ]
+                myI2C.bus.write_i2c_block_data(myI2C.address, myI2C.REG_CUR_JN_STAT, data )
+            time.sleep(1)
 
         # This is the address we setup in the Arduino Program
 
