@@ -35,6 +35,7 @@ pip3 install pyserial
 pip3 install openpyxl
 pip3 install smbus 
 pip3 install requests
+pip3 install schedule
 
 
 4.Install jtop
