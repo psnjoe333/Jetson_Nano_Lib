@@ -91,12 +91,13 @@ yolov4-obj-hen-best.weights
 
 #VNC server	
 
-~$ sudo apt update
-~$ sudo apt install vino
-
-Step 2 . 使用gsettings來調整GNOME桌面設定，將Vino的prompt-enabled（啟用提示）以及require-encryption（需要加密）都設為false，讓VNC遠端連線不需要經過認證階段。
-~$ gsettings set org.gnome.Vino prompt-enabled false
-~$ gsettings set org.gnome.Vino require-encryption false
+cd /usr/lib/systemd/user/graphical-session.target.wants
+sudo ln -s ../vino-server.service ./.
+gsettings set org.gnome.Vino prompt-enabled false
+gsettings set org.gnome.Vino require-encryption false
+# Replace thepassword with your desired password
+gsettings set org.gnome.Vino authentication-methods "['vnc']"
+gsettings set org.gnome.Vino vnc-password $(echo -n 'thepassword'|base64)
 
 Step 3. 將你正在用的網路卡加入VINO服務
 ~$ nmcli connection show
@@ -104,4 +105,8 @@ Step 3. 將你正在用的網路卡加入VINO服務
 ~$ dconf write /org/gnome/settings-daemon/plugins/sharing/vino-server/enabled-connections "['填入這裏’]”
 ~$ export DISPLAY=:0
 
-
+# Teamviewer
+https://www.teamviewer.com/tw/download/raspberry-pi/
+cd ./Downloads
+sudo dkpg "teamviewer-host_15.28.6_arm64.deb"
+sudo apt install -f
