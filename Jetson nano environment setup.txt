@@ -109,5 +109,5 @@ Step 3. 將你正在用的網路卡加入VINO服務
 # Teamviewer
 https://www.teamviewer.com/tw/download/raspberry-pi/
 cd ./Downloads
-sudo dkpg "teamviewer-host_15.28.6_arm64.deb"
+sudo dpkg "teamviewer-host_15.28.6_arm64.deb"
 sudo apt install -f
