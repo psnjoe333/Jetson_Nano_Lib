@@ -1,5 +1,4 @@
 #Install yolov
-
 1.Update
 sudo apt-get update
 2. Export Cuda path
@@ -9,8 +8,8 @@ export LD_LIBRARY_PATH=/usr/local/cuda-10.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRAR
 git clone https://github.com/AlexeyAB/darknet
 
 
-#Enable the GPU
-1.Edit makefile
+#Change the parameters and compile
+1.Edit makefile:
 cd darknet
 sudo vi Makefile or sudo nano Makefile(install nano first: sudo apt install nano)
 GPU =1
@@ -18,96 +17,49 @@ CUDNN=1
 OPENCV=1
 LIBSO = 1  !!!!!
 
-2. Compile the darknet
+2. Compile the darknet:
 make
 
 
-#Install pip3 and vscode
+#Install the package in need
 1. Install pip3
 sudo apt-get install python3-pip python3-dev
-2. Install vscode
- git clone https://github.com/JetsonHacksNano/installVSCode.git
- cd installVSCode
-./installVSCode.sh
-3. Install python module
+
+2. Install python module
 pip3 install spidev
 pip3 install pyserial
 pip3 install openpyxl
 pip3 install smbus 
 pip3 install requests
 pip3 install schedule
+pip3 install psutil
 
-
-4.Install jtop
-
+3.Install jtop
 sudo -H pip3 install jetson-stats
 
-5.Config the GPIO function
-sudo /opt/nvidia/jetson-io/jetson-io.py
+# Enable the function in need
+1.Config the GPIO function
+sudo /opt/nvidia/jetson-io/jetson-io.py 
+--> enable spi1 and spi2 PIN function
 
-
-#Change permate (in this version has been change in advance)
-1 yolov4-cfg
-darknet >>> cfg >>> yolov4-cfg
-Ctrl + f  find classes ### (Based on how many classes that you what to recognize.=1
-Then change the cmd “filters” just upon the classes that we found (formula : filters = (classes+5)*3 = 18
-Total 3 classes and filters should be changed.
-Hight : 320
-Width : 512
-2. coco.name and coco.data
- darknet >>> cfg >>> coco.data
-	classes ### can be changed
- darknet >>> cfg >>> coco.name
-	Change the name what you type in labeling (hen in this case)
- darknet >>> data >>> coco.name
-	 Change the name what you type in labeling
-
-#Copy the following files to darknet folder
-darknet_immded.py
-Yolov4-obj-hen_best.weights
-Create the following folder in the home folder
-original_picture
-temporary_picture
-final_picture
-Create the following xlsx fiile in the darknet folder
-filename.xlsx
-
-
-#Crontab (Background program registering)
-crontab –e
-
-Add following code to enable crontab program
-*/5 * * * * python3 /home/ichase/darknet/darknet_immed.py
-@reboot python3 /home/ichase/darknet/darknet_immed.py
-
-Copy the following folders/files to home folder
-Folder:
-cfg
-data
-
-File:
-filename.xlsx
-libdarknet.so
-yolov4-obj-hen-best.weights 
-
-#VNC server	
-
+2. Enable the VNC
 cd /usr/lib/systemd/user/graphical-session.target.wants
 sudo ln -s ../vino-server.service ./.
 gsettings set org.gnome.Vino prompt-enabled false
 gsettings set org.gnome.Vino require-encryption false
 # Replace thepassword with your desired password
 gsettings set org.gnome.Vino authentication-methods "['vnc']"
-gsettings set org.gnome.Vino vnc-password $(echo -n 'thepassword'|base64)
+gsettings set org.gnome.Vino vnc-password $(echo -n 'thepassword'|base64) <--replace the 'thepassword' with the password
 
-Step 3. 將你正在用的網路卡加入VINO服務
-~$ nmcli connection show
-會顯示網路卡的UUID，把它填入下方的單引號’之間
-~$ dconf write /org/gnome/settings-daemon/plugins/sharing/vino-server/enabled-connections "['填入這裏’]”
-~$ export DISPLAY=:0
 
-# Teamviewer
+# Install Teamviewer
 https://www.teamviewer.com/tw/download/raspberry-pi/
 cd ./Downloads
 sudo dpkg -i "teamviewer-host_15.28.6_arm64.deb"
 sudo apt install -f
+
+# useful software
+1. vscode
+ git clone https://github.com/JetsonHacksNano/installVSCode.git
+ cd installVSCode
+./installVSCode.sh
