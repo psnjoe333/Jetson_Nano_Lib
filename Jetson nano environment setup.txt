@@ -59,7 +59,7 @@ cd ./Downloads
 sudo dpkg -i "teamviewer-host_15.28.6_arm64.deb"
 sudo apt -y install -f
 
-# useful software
+# useful software (Not necessary)
 1. vscode
  git clone https://github.com/JetsonHacksNano/installVSCode.git
  cd installVSCode
